@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Employee Query Lab</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      max-width: 960px;
+      margin: 2rem auto;
+      padding: 0 1rem;
+      color: #1f2937;
+      background: #f5f7fb;
+      font-family: "Segoe UI", Tahoma, sans-serif;
+    }
+    h1 { margin-bottom: 1.25rem; }
+    h2 { margin: 0; font-size: 1.1rem; }
+    .card {
+      margin-bottom: 1rem;
+      padding: 1.25rem;
+      background: #fff;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.07);
+    }
+    .controls {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 0.75rem;
+    }
+    .controls form {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 0.75rem;
+    }
+    label { font-weight: 600; }
+    input[type="text"] {
+      min-width: 200px;
+      padding: 0.6rem 0.75rem;
+      border: 1px solid #cbd5e1;
+      border-radius: 5px;
+    }
+    button {
+      padding: 0.65rem 1rem;
+      color: #fff;
+      background: #2563eb;
+      border: 0;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    button:hover { background: #1d4ed8; }
+    .query-button { width: auto; max-width: 100%; }
+    .error {
+      padding: 0.75rem 1rem;
+      color: #991b1b;
+      background: #fee2e2;
+      border-radius: 5px;
+    }
+    .count { margin: 0 0 0.75rem; font-weight: 600; }
+    .table-wrap { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; background: #fff; }
+    th, td { padding: 0.65rem 0.75rem; border: 1px solid #e5e7eb; text-align: left; }
+    th { background: #eef2ff; }
+    tr:nth-child(even) { background: #fafafa; }
+  </style>
+</head>
+<body>
+  <h1>Employee Query Lab</h1>
+
+  {% if error %}
+  <div class="card error">เกิดข้อผิดพลาดในการเชื่อมต่อฐานข้อมูล</div>
+  {% endif %}
+
+  <section class="card">
+    <div class="controls">
+    <form method="POST">
+      <input type="hidden" name="action" value="department">
+      <label for="department">ค้นหาตามแผนก</label>
+      <input type="text" id="department" name="department" value="{{ department }}" placeholder="เช่น IT, HR, Finance">
+      <button type="submit">ค้นหา</button>
+    </form>
+    <form method="POST">
+      <input type="hidden" name="action" value="department_stats">
+      <button class="query-button" type="submit">สถิติเงินเดือนรายแผนก</button>
+    </form>
+    <form method="POST">
+      <input type="hidden" name="action" value="above_department_average">
+      <button class="query-button" type="submit">พนักงานเงินเดือนสูงกว่าค่าเฉลี่ยแผนก</button>
+    </form>
+    </div>
+  </section>
+
+  {% if request.method == 'POST' %}
+    {% if action == 'department_stats' %}
+  <section class="card">
+    <p class="count">ผลลัพธ์: {{ department_stats|length }} แผนก</p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>แผนก</th><th>จำนวนพนักงาน</th><th>เงินเดือนเฉลี่ย</th><th>สูงสุด</th><th>ต่ำสุด</th></tr></thead>
+        <tbody>
+          {% for row in department_stats %}
+          <tr><td>{{ row[0] }}</td><td>{{ row[1] }}</td><td>{{ "{:,.2f}".format(row[2]) }}</td><td>{{ "{:,.2f}".format(row[3]) }}</td><td>{{ "{:,.2f}".format(row[4]) }}</td></tr>
+          {% else %}<tr><td colspan="5">ไม่พบข้อมูล</td></tr>{% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+    {% else %}
+  <section class="card">
+    <p class="count">
+      {% if action == 'above_department_average' %}
+        ผลลัพธ์: {{ employees|length }} คนที่เงินเดือนสูงกว่าค่าเฉลี่ยแผนก
+      {% else %}
+        ผลลัพธ์: {{ employees|length }} คน
+      {% endif %}
+    </p>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>ชื่อ</th><th>นามสกุล</th><th>แผนก</th><th>เงินเดือน</th><th>วันเริ่มงาน</th>
+            {% if action == 'above_department_average' %}<th>ค่าเฉลี่ยแผนก</th>{% endif %}
+          </tr>
+        </thead>
+        <tbody>
+          {% for e in employees %}
+          <tr>
+            <td>{{ e[0] }}</td><td>{{ e[1] }}</td><td>{{ e[2] }}</td>
+            <td>{{ "{:,.2f}".format(e[3]) }}</td><td>{{ e[4] }}</td>
+            {% if action == 'above_department_average' %}<td>{{ "{:,.2f}".format(e[5]) }}</td>{% endif %}
+          </tr>
+          {% else %}<tr><td colspan="{% if action == 'above_department_average' %}6{% else %}5{% endif %}">ไม่พบข้อมูล</td></tr>{% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+    {% endif %}
+  {% endif %}
+</body>
+</html>
