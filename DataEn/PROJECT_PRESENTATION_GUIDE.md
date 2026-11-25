@@ -38,28 +38,25 @@ ORDER BY department;
 **ตอบคำถาม:** พนักงานคนใดได้เงินเดือนมากกว่าค่าเฉลี่ยของพนักงานในแผนกเดียวกัน พร้อมแสดงค่าเฉลี่ยเพื่อใช้เปรียบเทียบ
 
 ```sql
-SELECT first_name, last_name, department, salary, hire_date,
-       (
-           SELECT AVG(e2.salary)
-           FROM employees e2
-           WHERE e2.department = e.department
-       ) AS department_average
+SELECT e.first_name, e.last_name, e.department, e.salary,
+       ROUND(d.avg_salary, 2) AS department_avg
 FROM employees e
-WHERE e.salary > (
-    SELECT AVG(e2.salary)
-    FROM employees e2
-    WHERE e2.department = e.department
-)
-ORDER BY department, salary DESC, last_name, first_name;
+JOIN (
+    SELECT department, AVG(salary) AS avg_salary
+    FROM employees
+    GROUP BY department
+) d ON e.department = d.department
+WHERE e.salary > d.avg_salary
+ORDER BY e.department, e.first_name;
 ```
 
-- Query ด้านนอกตั้งชื่อแถวพนักงานปัจจุบันว่า `e`
-- Subquery ด้านในอ่านตาราง `employees` อีกครั้งในชื่อ `e2` และ `WHERE e2.department = e.department` ทำให้คำนวณค่าเฉลี่ยเฉพาะแผนกของพนักงานแถวนั้น หลักการนี้เรียกว่า correlated subquery เพราะ subquery อ้างถึงค่าจาก query ชั้นนอก
-- เงื่อนไข `e.salary > (subquery)` เลือกเฉพาะคนที่เงินเดือนสูงกว่าค่าเฉลี่ยแผนก
-- Subquery ในส่วน `SELECT` คำนวณค่าเฉลี่ยเดียวกันเพื่อแสดงเป็นคอลัมน์ `department_average`
-- `ORDER BY` เรียงแผนกก่อน ตามด้วยเงินเดือนจากมากไปน้อย และชื่อเพื่อให้ผลเรียงสม่ำเสมอ
+- Subquery `d` ใช้ `GROUP BY department` และ `AVG(salary)` คำนวณเงินเดือนเฉลี่ยหนึ่งค่าต่อแผนก
+- `JOIN` นำค่าเฉลี่ยของแต่ละแผนกมาเชื่อมกับพนักงานในแผนกเดียวกัน
+- `WHERE e.salary > d.avg_salary` กรองให้เหลือเฉพาะพนักงานที่เงินเดือนสูงกว่าค่าเฉลี่ยของแผนก
+- `ROUND(d.avg_salary, 2)` แสดงค่าเฉลี่ยเป็นทศนิยม 2 ตำแหน่ง
+- `ORDER BY e.department, e.first_name` เรียงผลลัพธ์ตามแผนกและชื่อ
 
-Query นี้ใช้ correlated subquery เพื่อหาค่าเฉลี่ยของแผนกของพนักงานแต่ละคน แล้วเลือกและแสดงเฉพาะข้อมูลที่เกี่ยวข้อง
+Query นี้ใช้ subquery สรุปค่าเฉลี่ยรายแผนก แล้ว JOIN ผลสรุปเข้ากับรายชื่อพนักงานเพื่อกรองและแสดงผล
 
 ## การเพิ่มข้อมูลพนักงานตัวอย่าง
 
@@ -77,8 +74,8 @@ Query นี้ใช้ correlated subquery เพื่อหาค่าเ�
 
 | ไฟล์ | หน้าที่/การเปลี่ยนแปลง |
 |---|---|
-| `web-app/app.py` | เชื่อมต่อ PostgreSQL และจัดการ action ของฟอร์ม เพิ่ม query สถิติรายแผนกและ query เงินเดือนสูงกว่าค่าเฉลี่ยแผนก รวมทั้งแก้ query หลังสุดให้ใช้ correlated subquery |
-| `web-app/templates/index.html` | แสดงฟอร์มค้นหา ปุ่ม query ตารางสถิติ และตารางรายชื่อพนักงานพร้อมค่าเฉลี่ยแผนก |
+| `web-app/app.py` | เชื่อมต่อ PostgreSQL และจัดการ action ของฟอร์ม เพิ่ม query สถิติรายแผนกและ query เงินเดือนสูงกว่าค่าเฉลี่ยแผนกโดยใช้ subquery ร่วมกับ JOIN |
+| `web-app/templates/index.html` | แสดงฟอร์มค้นหา ปุ่ม query ตารางสถิติ และตารางรายชื่อพนักงานพร้อมค่าเฉลี่ยแผนก โดยแสดงคอลัมน์ตามผล query |
 | `init/init.sql` | สร้างตาราง `employees` และเพิ่มข้อมูลพนักงานตั้งต้น 70 คน |
 | `init/zz_more_employees.sql` | เพิ่มข้อมูลพนักงานตัวอย่างได้สูงสุด 230 คนด้วยชุดชื่อ/นามสกุลและการสุ่ม |
 | `docker-compose.yml` | กำหนดบริการ PostgreSQL, pgAdmin และเว็บแอป รวมถึง mount โฟลเดอร์ `init` ให้ PostgreSQL ประมวลผล SQL ตอนสร้าง data volume ใหม่ |
@@ -92,7 +89,7 @@ Query นี้ใช้ correlated subquery เพื่อหาค่าเ�
 
 - `department` ใช้ค้นหาตามแผนกหรือแสดงทั้งหมด
 - `department_stats` ใช้ query สรุปสถิติและส่งผลไปแสดงในตารางสถิติ
-- `above_department_average` ใช้ query correlated subquery แล้วส่งรายชื่อกับค่าเฉลี่ยไปแสดงในตารางพนักงาน
+- `above_department_average` ใช้ subquery สรุปค่าเฉลี่ยรายแผนกแล้ว JOIN กับพนักงาน เพื่อแสดงรายชื่อกับค่าเฉลี่ยในตาราง
 
 ## การรันโปรเจกต์
 

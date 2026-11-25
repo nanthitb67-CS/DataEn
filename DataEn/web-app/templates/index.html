@@ -119,18 +119,18 @@
     <div class="table-wrap">
       <table>
         <thead>
-          <tr><th>ชื่อ</th><th>นามสกุล</th><th>แผนก</th><th>เงินเดือน</th><th>วันเริ่มงาน</th>
-            {% if action == 'above_department_average' %}<th>ค่าเฉลี่ยแผนก</th>{% endif %}
+          <tr><th>ชื่อ</th><th>นามสกุล</th><th>แผนก</th><th>เงินเดือน</th>
+            {% if action == 'above_department_average' %}<th>ค่าเฉลี่ยแผนก</th>{% else %}<th>วันเริ่มงาน</th>{% endif %}
           </tr>
         </thead>
         <tbody>
           {% for e in employees %}
           <tr>
             <td>{{ e[0] }}</td><td>{{ e[1] }}</td><td>{{ e[2] }}</td>
-            <td>{{ "{:,.2f}".format(e[3]) }}</td><td>{{ e[4] }}</td>
-            {% if action == 'above_department_average' %}<td>{{ "{:,.2f}".format(e[5]) }}</td>{% endif %}
+            <td>{{ "{:,.2f}".format(e[3]) }}</td>
+            {% if action == 'above_department_average' %}<td>{{ "{:,.2f}".format(e[4]) }}</td>{% else %}<td>{{ e[4] }}</td>{% endif %}
           </tr>
-          {% else %}<tr><td colspan="{% if action == 'above_department_average' %}6{% else %}5{% endif %}">ไม่พบข้อมูล</td></tr>{% endfor %}
+          {% else %}<tr><td colspan="5">ไม่พบข้อมูล</td></tr>{% endfor %}
         </tbody>
       </table>
     </div>

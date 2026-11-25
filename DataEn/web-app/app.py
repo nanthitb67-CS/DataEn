@@ -79,19 +79,16 @@ def index():
         elif request.method == "POST" and action == "above_department_average":
             cur.execute(
                 """
-                SELECT first_name, last_name, department, salary, hire_date,
-                       (
-                           SELECT AVG(e2.salary)
-                           FROM employees e2
-                           WHERE e2.department = e.department
-                       ) AS department_average
+                SELECT e.first_name, e.last_name, e.department, e.salary,
+                       ROUND(d.avg_salary, 2) AS department_avg
                 FROM employees e
-                WHERE e.salary > (
-                    SELECT AVG(e2.salary)
-                    FROM employees e2
-                    WHERE e2.department = e.department
-                )
-                ORDER BY department, salary DESC, last_name, first_name
+                JOIN (
+                    SELECT department, AVG(salary) AS avg_salary
+                    FROM employees
+                    GROUP BY department
+                ) d ON e.department = d.department
+                WHERE e.salary > d.avg_salary
+                ORDER BY e.department, e.first_name
                 """
             )
             employees = cur.fetchall()
