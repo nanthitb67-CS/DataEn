@@ -80,13 +80,17 @@ def index():
             cur.execute(
                 """
                 SELECT first_name, last_name, department, salary, hire_date,
-                       department_average
-                FROM (
-                    SELECT first_name, last_name, department, salary, hire_date,
-                           AVG(salary) OVER (PARTITION BY department) AS department_average
-                    FROM employees
-                ) AS employee_salaries
-                WHERE salary > department_average
+                       (
+                           SELECT AVG(e2.salary)
+                           FROM employees e2
+                           WHERE e2.department = e.department
+                       ) AS department_average
+                FROM employees e
+                WHERE e.salary > (
+                    SELECT AVG(e2.salary)
+                    FROM employees e2
+                    WHERE e2.department = e.department
+                )
                 ORDER BY department, salary DESC, last_name, first_name
                 """
             )
